@@ -142,9 +142,6 @@ static dispatch_queue_t xml_request_operation_processing_queue() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-retain-cycles"
     self.completionBlock = ^ {
-        dispatch_async(xml_request_operation_processing_queue(), ^(void) {
-            NSXMLParser *XMLParser = self.responseXMLParser;
-
             if (self.error) {
                 if (failure) {
                     dispatch_async(self.failureCallbackQueue ?: dispatch_get_main_queue(), ^{
@@ -152,13 +149,24 @@ static dispatch_queue_t xml_request_operation_processing_queue() {
                     });
                 }
             } else {
-                if (success) {
-                    dispatch_async(self.successCallbackQueue ?: dispatch_get_main_queue(), ^{
-                        success(self, XMLParser);
-                    });
-                }
+                dispatch_async(xml_request_operation_processing_queue(), ^(void) {
+                    NSXMLParser *XMLParser = self.responseXMLParser;
+                    if (self.error) {
+                        if (failure) {
+                            dispatch_async(self.failureCallbackQueue ?: dispatch_get_main_queue(), ^{
+                                failure(self, self.error);
+                            });
+                        }
+                    }
+                    else{
+                        if (success) {
+                            dispatch_async(self.successCallbackQueue ?: dispatch_get_main_queue(), ^{
+                                success(self, XMLParser);
+                            });
+                        }
+                    }
+                });
             }
-        });
     };
 #pragma clang diagnostic pop
 }
